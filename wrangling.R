@@ -8,22 +8,31 @@ require(corrplot)
 require(caret)
 require(tidyverse)
 
+# Get IBGE city names and ids
 sp_cities <- get_ids()
 
+# Get education data for all cities
 sp_education <- map(sp_cities$id, get_education)
 
+# Get pib for all cities
 sp_pib <- map(sp_cities$id, get_pib_per_capita)
 
+# Population
 sp_pop <- map(sp_cities$id, get_population)
 
+# Jobs and salaries
 sp_jobs <- map(sp_cities$id, get_jobs)
 
+# Presidential voting
 sp_voting <- map(sp_cities$id, get_presidential_voting)
 
+# Census
 sp_census <- map(sp_cities$id, get_census_2010)
 
+# Number of vehicles
 sp_vehicles <- map(sp_cities$id, get_vehicles)
 
+# Bind all data
 sp_education_df <- bind_rows(sp_education)
 
 sp_pib_df <- bind_rows(sp_pib)
@@ -42,10 +51,12 @@ ssp_mun <- get_ssp_mun()
 
 crime_data <- map(ssp_mun$ssp_id[-1], get_crime_data)
 
+# Do all city names match?
 all(unlist(lapply(crime_data, function(x) attributes(x)$cidade)) %in% ssp_mun$cidade)
 
 names(crime_data) <- ssp_mun$ssp_id[-1]
 
+# Bind crime data
 crime_data_df <- bind_rows(lapply(crime_data, function(x) {
   city <- attributes(x)$cidade
   x$Total <- gsub("\\.", "", as.character(x$Total))
@@ -78,10 +89,12 @@ crime_data_df <- bind_rows(lapply(crime_data, function(x) {
 crime_data_df <- crime_data_df %>%
   mutate(cidade = match_city(cidade, sp_cities$cidade)$y)
 
+# Polygons for all cities except Ilhabela
 sp_sf <- filter(brmap_municipio, sigla == "SP")
 sp_sf <- sp_sf %>%
   mutate(municipio = match_city(municipio, sp_cities$cidade)$y)
   
+# Join all data frames
 sp_all <- left_join(sp_education_df, sp_cities) %>%
   left_join(sp_pib_df) %>%
   left_join(sp_pop_df) %>%
@@ -92,6 +105,7 @@ sp_all <- left_join(sp_education_df, sp_cities) %>%
   left_join(crime_data_df) %>%
   rename_all(remove_accents)
 
+# Keep only the most relevant variables
 sp_all <- sp_all %>%
   select(
     cidade,
@@ -110,6 +124,7 @@ sp_all <- sp_all %>%
     automovel
   )
 
+# Transform absolute numbers into per thousand people
 sp_all <- sp_all %>%
   mutate_at(vars(estupro:tentativa_homicidio), funs(./populacao*1000)) %>%
   mutate_at(vars(docentes_fundamental:numero_empresas), funs(./populacao*1000)) %>%

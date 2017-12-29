@@ -3,6 +3,7 @@ require(stringr)
 require(tidyr)
 require(purrr)
 
+# Get IBGE ids for each city
 get_ids <- function() {
   dummy_url <- read_html("https://cidades.ibge.gov.br/xtras/perfil.php?lang=&codmun=3550308")
   cities_urls <- dummy_url %>%
@@ -15,6 +16,7 @@ get_ids <- function() {
   data.frame(cidade = cities_names, id = cities_ids, stringsAsFactors = FALSE)
 }
 
+# Helper to rename education variables
 rename_education_cols <- function(name) {
   name <- tolower(name)
   name <- gsub("é", "e", name)
@@ -23,10 +25,12 @@ rename_education_cols <- function(name) {
   paste(str_extract_all(name, "^(\\w{3})|(?<=_)\\w.{2}")[[1]], collapse = "_")
 }
 
+# Helper to build urls to scrape data from IBGE according to the theme
 build_url <- function(tema, id) {
   paste0("https://cidades.ibge.gov.br/xtras/csv.php?lang=&idtema=", tema, "&codmun=", id)
 }
 
+# Get education data from IBGE from 2010
 get_education <- function(id = 354340) {
   ed_data <- read.csv2(build_url(156, id), header = FALSE, fileEncoding = "iso-8859-1", encoding = "iso-8859-1", skip = 3)
   ed_data <- head(ed_data, -2) %>%
@@ -45,6 +49,7 @@ get_education <- function(id = 354340) {
     select(id, everything())
 }
 
+# Get gross income data from 2014
 get_pib_per_capita <- function(id = 354340) {
   pib_data <- read.csv2(build_url(162, id), header = FALSE, fileEncoding = "iso-8859-1", encoding = "iso-8859-1", skip = 3)
   pib <- pib_data %>%
@@ -55,6 +60,7 @@ get_pib_per_capita <- function(id = 354340) {
   data.frame(id, pib)
 }
 
+# Retrieve population data
 get_population <- function(id = 354340) {
   pop_data <- read.csv2(build_url(1, id), header = FALSE, fileEncoding = "iso-8859-1", encoding = "iso-8859-1", skip = 3)
   pop_data <- head(pop_data[1:2], -1)
@@ -68,6 +74,7 @@ get_population <- function(id = 354340) {
     spread(variable, amount)
 }
 
+# Get salary and number of employed people
 get_jobs <- function(id = 354340) {
   job_data <- read.csv2(build_url(165, id), header = FALSE, fileEncoding = "iso-8859-1", encoding = "iso-8859-1", skip = 3)
   job_data <- head(job_data[1:2], -1)
@@ -81,6 +88,7 @@ get_jobs <- function(id = 354340) {
     spread(variable, amount)
 }
 
+# Get proportion of votes in the 2014 presidential election
 get_presidential_voting <- function(id = 354340) {
   votes_data <- read.csv2(build_url(140, id), header = FALSE, fileEncoding = "iso-8859-1", encoding = "iso-8859-1", skip = 3)
   votes_data <- head(votes_data, -1)
@@ -89,6 +97,7 @@ get_presidential_voting <- function(id = 354340) {
   data.frame(id = id, dilma, aecio)
 }
 
+# Get all data from the 2010 census
 get_census_2010 <- function(id = 354340) {
   census_data <- read.csv2(build_url(105, id), header = FALSE, fileEncoding = "iso-8859-1", encoding = "iso-8859-1", skip = 3)
   census_data <- head(census_data, -1)
@@ -104,6 +113,7 @@ get_census_2010 <- function(id = 354340) {
     select(id, everything())
 }
 
+# Match city names from IBGE and SSP
 match_city <- function(x, y) {
   z <- gsub("S\\.(?=[AEIOU])", "SANTO ", x, perl = T)
   z <- gsub("S\\.(?=[^AEIOU])", "SAO ", z, perl = T)
@@ -113,6 +123,7 @@ match_city <- function(x, y) {
   res[res$x != "", ]
 }
 
+# Get all cities and corresponding ids from the SSP database
 get_ssp_mun <- function() {
   ssp_url <-
     "http://www.ssp.sp.gov.br/Estatistica/Pesquisa.aspx"
@@ -126,6 +137,7 @@ get_ssp_mun <- function() {
   data.frame(ssp_id, cidade = city)
 }
 
+# Download crime data for a given city and year
 get_crime_data <- function(municipio = 3, year = 2015, verbose = TRUE) {
   if (verbose) cat(municipio, sep = "\n")
   set_year <-
@@ -146,6 +158,7 @@ get_crime_data <- function(municipio = 3, year = 2015, verbose = TRUE) {
   res
 }
 
+# Not used. Get central point coordinates for a city
 get_coordinates <- function(x) {
   done <- FALSE
   while(!done) {
@@ -156,6 +169,7 @@ get_coordinates <- function(x) {
   data.frame(cidade = x, lat = res$lat, long = res$lon)
 }
 
+# Remove accented and other funky characters from variable names
 remove_accents <- function(x) {
   x <- str_replace_all(x, "[áãâà]", "a")
   x <- str_replace_all(x, "[éê]", "e")
@@ -166,6 +180,7 @@ remove_accents <- function(x) {
   str_replace_all(x, "[úü]", "u")
 }
 
+# Get number of vehicles for a given city
 get_vehicles <- function(id = 354340) {
   vehicles_data <- read.csv2(build_url(153, id), header = FALSE, fileEncoding = "iso-8859-1", encoding = "iso-8859-1", skip = 3)
   vehicles_data <- head(vehicles_data, -3) %>%
@@ -183,6 +198,7 @@ get_vehicles <- function(id = 354340) {
     select(id, everything())
 }
 
+# Helper to build POST requests to get data from SSP
 post_form <-
   function(target = NULL,
            response = FALSE,
