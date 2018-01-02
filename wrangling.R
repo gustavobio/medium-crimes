@@ -121,7 +121,12 @@ sp_all <- sp_all %>%
     pessoas_por_casa = `media_de_moradores_em_domicilios_particulares_ocupados`,
     motocicleta,
     motoneta,
-    automovel
+    automovel,
+    caminhao,
+    total_de_veiculos,
+    salarios_total = `salarios_e_outras_remuneracões`, 
+    numero_de_unidades_locais,
+    domicilios_coletivos
   )
 
 # Transform absolute numbers into per thousand people
